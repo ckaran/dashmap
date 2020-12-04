@@ -1,9 +1,12 @@
-use flize::{Tag, generic_array::{GenericArray, typenum::U2}};
+use flize::{
+    generic_array::{typenum::U2, GenericArray},
+    Tag,
+};
 
 #[derive(Clone, Copy)]
 pub struct BTag {
     pub tombstone: bool,
-    pub resize: bool,
+    pub resize:    bool,
 }
 
 impl Tag for BTag {
@@ -12,7 +15,7 @@ impl Tag for BTag {
     fn deserialize(bits: GenericArray<bool, Self::Size>) -> Self {
         Self {
             tombstone: bits[0],
-            resize: bits[1],
+            resize:    bits[1],
         }
     }
 

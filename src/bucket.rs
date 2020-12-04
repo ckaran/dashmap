@@ -1,19 +1,18 @@
 use crate::alloc::{GlobalObjectAllocator, ObjectAllocator};
-use std::ops::Deref;
 use flize::{ebr::Ebr, function_runner::FunctionRunner, Shield};
+use std::ops::Deref;
 
-/// Represents an occupied slot in a map.
-/// Besides the key and value it contains the allocator tag
-/// so it can deallocate itself when it's lifetime ends.
+/// Represents an occupied slot in a map. Besides the key and value it contains
+/// the allocator tag so it can deallocate itself when it's lifetime ends.
 pub struct Bucket<K, V, A: ObjectAllocator<Self>> {
-    pub(crate) tag: A::Tag,
-    pub(crate) key: K,
+    pub(crate) tag:   A::Tag,
+    pub(crate) key:   K,
     pub(crate) value: V,
 }
 
 impl<K, V, A: ObjectAllocator<Self>> Bucket<K, V, A> {
-    /// Create a new bucket with a default tag.
-    /// The tag will need to be set to the correct value before being published to the map.
+    /// Create a new bucket with a default tag. The tag will need to be set to
+    /// the correct value before being published to the map.
     pub fn new(key: K, value: V) -> Self {
         Self {
             tag: A::Tag::default(),
@@ -22,21 +21,35 @@ impl<K, V, A: ObjectAllocator<Self>> Bucket<K, V, A> {
         }
     }
 
-    pub fn read<'a>(&'a self, shield: Shield<'a, Ebr<FunctionRunner>>) -> Guard<'a, K, V, A> {
+    pub fn read<'a>(
+        &'a self,
+        shield: Shield<'a, Ebr<FunctionRunner>>,
+    ) -> Guard<'a, K, V, A> {
         Guard::new(self, shield)
     }
 }
 
-/// A guard is a view of a map entry.
-/// It exists to automatically manage memory behind the scenes.
-pub struct Guard<'a, K, V, A: ObjectAllocator<Bucket<K, V, A>> = GlobalObjectAllocator> {
+/// A guard is a view of a map entry. It exists to automatically manage memory
+/// behind the scenes.
+pub struct Guard<
+    'a,
+    K,
+    V,
+    A: ObjectAllocator<Bucket<K, V, A>> = GlobalObjectAllocator,
+> {
     bucket: &'a Bucket<K, V, A>,
     shield: Shield<'a, Ebr<FunctionRunner>>,
 }
 
 impl<'a, K, V, A: ObjectAllocator<Bucket<K, V, A>>> Guard<'a, K, V, A> {
-    fn new(bucket: &'a Bucket<K, V, A>, shield: Shield<'a, Ebr<FunctionRunner>>) -> Self {
-        Self { bucket, shield }
+    fn new(
+        bucket: &'a Bucket<K, V, A>,
+        shield: Shield<'a, Ebr<FunctionRunner>>,
+    ) -> Self {
+        Self {
+            bucket,
+            shield,
+        }
     }
 
     /// Returns the key associated with this entry.
@@ -55,7 +68,9 @@ impl<'a, K, V, A: ObjectAllocator<Bucket<K, V, A>>> Guard<'a, K, V, A> {
     }
 }
 
-impl<'a, K, V, A: ObjectAllocator<Bucket<K, V, A>>> Deref for Guard<'a, K, V, A> {
+impl<'a, K, V, A: ObjectAllocator<Bucket<K, V, A>>> Deref
+    for Guard<'a, K, V, A>
+{
     type Target = V;
 
     fn deref(&self) -> &Self::Target {
@@ -63,7 +78,9 @@ impl<'a, K, V, A: ObjectAllocator<Bucket<K, V, A>>> Deref for Guard<'a, K, V, A>
     }
 }
 
-impl<'a, K, V, A: ObjectAllocator<Bucket<K, V, A>>> Clone for Guard<'a, K, V, A> {
+impl<'a, K, V, A: ObjectAllocator<Bucket<K, V, A>>> Clone
+    for Guard<'a, K, V, A>
+{
     fn clone(&self) -> Self {
         Self {
             bucket: self.bucket,
